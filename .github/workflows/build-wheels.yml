@@ -1,0 +1,77 @@
+name: Build wheels
+
+on:
+  push:
+    branches: [master, main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # The models of nihui/srmd-ncnn-vulkan 20220728, the same files on every platform.
+  MODELS_URL: https://github.com/nihui/srmd-ncnn-vulkan/releases/download/20220728/srmd-ncnn-vulkan-20220728-ubuntu.zip
+  MODELS_SHA256: 0020a65e2b4e183ce469c11734656035203cc6597bf42a1277abf0fbef610a6c
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows x64, os: windows-latest, archs: AMD64 }
+          - { name: Linux x86_64, os: ubuntu-latest, archs: x86_64 }
+          - { name: macOS arm64, os: macos-14, archs: arm64 }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Download the models
+        shell: bash
+        run: |
+          curl -sL -o models.zip "$MODELS_URL"
+          echo "$MODELS_SHA256  models.zip" | sha256sum -c - 2>/dev/null || echo "$MODELS_SHA256  models.zip" | shasum -a 256 -c -
+          python -c "import zipfile; zipfile.ZipFile('models.zip').extractall('models-zip')"
+          mkdir models
+          mv models-zip/*/models-* models/
+          ls models
+
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v4.3
+        env:
+          # The plugin only uses the VapourSynth C API, the wheel is tagged py3-none by scikit-build-core.
+          CIBW_BUILD: cp312-*
+          CIBW_SKIP: '*-musllinux*'
+          CIBW_ARCHS: ${{ matrix.archs }}
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: ''
+          # The runtime is linked statically (CMAKE_MSVC_RUNTIME_LIBRARY), delvewheel would have nothing to bundle.
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: ''
+          # The runners have no GPU: the test loads the plugin and checks its errors, it computes only with a Vulkan device.
+          CIBW_TEST_COMMAND: python {project}/test/test_srmd.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  release:
+    name: GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: wheel-*
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*.whl
+          generate_release_notes: true

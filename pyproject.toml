@@ -1,0 +1,19 @@
+[build-system]
+requires = ['scikit-build-core>=0.10']
+build-backend = 'scikit_build_core.build'
+
+[project]
+name = 'vapoursynth-srmd-ncnn-vulkan'
+version = '1.1.0'
+description = 'SRMD ncnn Vulkan plugin for VapourSynth (API 4), with the models'
+readme = 'README.md'
+requires-python = '>=3.8'
+license = { file = 'LICENSE' }
+dependencies = ['VapourSynth']
+
+[tool.scikit-build]
+# The plugin goes to site-packages/vapoursynth/plugins/srmd (PLUGIN_DIR in CMakeLists.txt), no Python module.
+wheel.packages = []
+wheel.py-api = 'py3'
+cmake.build-type = 'Release'
+cmake.args = ['-DPLUGIN_DIR=vapoursynth/plugins/srmd']

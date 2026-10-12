@@ -37,63 +37,38 @@ Models should be located in folder `models`, and folder `models` should be locat
   * Optional parameter. *Default: False*.
   * If true, quality will be improved, but speed will be significantly slower.
 
+## VapourSynth API 4 and wheels
+
+This fork targets the VapourSynth API 4 (R55 and newer, required since R80). The namespace `srmdnv`, the function and
+its arguments are unchanged. It builds against ncnn 20260526, which loads the Vulkan driver itself, so no Vulkan SDK is
+needed.
+
+Each instance compiles its own shaders: with a shader cache shared by all instances, a `tta=True` instance after a
+non-TTA one in the same process got the non-TTA shader and failed with `binding_count not match`.
+
+The Windows build of the API 3 version that Hybrid shipped gave wrong colours (red channel nearly black); this build
+stays within 36 to 41 dB of a bicubic upscale.
+
+Wheels for Windows x64, Linux x86_64 and macOS arm64 are attached to the GitHub releases. They contain the models of
+[srmd-ncnn-vulkan 20220728](https://github.com/nihui/srmd-ncnn-vulkan/releases/tag/20220728):
+
+```
+pip install vapoursynth_srmd_ncnn_vulkan-<version>-py3-none-<platform>.whl
+```
+
+The plugin and its `models` folder go to `site-packages/vapoursynth/plugins/srmd`.
+
 ## Compilation
 
-### Windows
-
-1.Install Vulkan SDK.
-
-2.If your VapourSynth is installed in `C:\Program Files\VapourSynth` , you can run the following command directly. Otherwise use `cmake -G "NMake Makefiles" -DVAPOURSYNTH_INCLUDE_DIR=Path/To/vapoursynth/sdk/include/vapoursynth ..` in the second-to-last step.
-
-```bash
-git clone --recursive https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan.git
+```
+git clone --recursive https://github.com/Selur/VapourSynth-SRMD-ncnn-Vulkan
 cd VapourSynth-SRMD-ncnn-Vulkan
-
-mkdir build && cd build
-cmake -G "NMake Makefiles" ..
-cmake --build .
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
-### Linux
-
-1.Install Vulkan SDK and add to path.
-
-2.If your VapourSynth is installed in `usr/local` , you can run the following command directly. Otherwise use `cmake -DVAPOURSYNTH_INCLUDE_DIR=Path/To/vapoursynth ..` in the second-to-last step.
-
-```bash
-git clone --recursive https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan.git
-cd VapourSynth-SRMD-ncnn-Vulkan
-
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
-
-### Windows and Linux using Github Actions
-
-1.[Fork this repository](https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan/fork).
-
-2.Enable Github Actions on your fork: **Settings** tab -> **Actions** -> **General** -> **Allow all actions and reusable workflows** -> **Save** button.
-
-3.Edit (if necessary) the file `.github/workflows/CI.yml` on your fork modifying the environment variables Vulkan SDK and/or VapourSynth versions:
-
-```
-env:
-  VULKAN_SDK_VERSION: <SET_YOUR_VERSION>
-  VAPOURSYNTH_VERSION: <SET_YOUR_VERSION>
-```
-
-4.Go to the GitHub **Actions** tab on your fork, select **CI** workflow and press the **Run workflow** button (if you modified the `.github/workflows/CI.yml` file, a workflow will be already running and no need to run a new one).
-
-When the workflow is completed you will be able to download the artifacts generated (Windows and Linux versions) from the run.
-
-## Download Nightly Builds
-
-**GitHub Actions Artifacts ONLY can be downloaded by GitHub logged users.**
-
-Nightly builds are built automatically by GitHub Actions (GitHub's integrated CI/CD tool) every time a new commit is pushed to the _master_ branch or a pull request is created.
-
-To download the latest nightly build, go to the GitHub [Actions](https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan/actions/workflows/CI.yml) tab, enter the last run of workflow **CI**, and download the artifacts generated (Windows and Linux versions) from the run.
+The VapourSynth API 4 headers are vendored in `include/vapoursynth`. For the tests, put the `models-*` folders of the
+srmd-ncnn-vulkan release into `build/models` and run `python3 test/test_srmd.py build/libsrmdnv.so`.
 
 ## Reference Code
 

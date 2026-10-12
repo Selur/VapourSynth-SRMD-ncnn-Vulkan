@@ -12,3 +12,9 @@ _deps
 
 # Build folder
 build/
+# Build output, wheels and the downloaded models
+build/
+dist/
+wheelhouse/
+__pycache__/
+/models/
