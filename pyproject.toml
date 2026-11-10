@@ -4,7 +4,7 @@ build-backend = 'scikit_build_core.build'
 
 [project]
 name = 'vapoursynth-srmd-ncnn-vulkan'
-version = '1.1.0'
+version = '1.1.1'
 description = 'SRMD ncnn Vulkan plugin for VapourSynth (API 4), with the models'
 readme = 'README.md'
 requires-python = '>=3.8'
